@@ -190,9 +190,9 @@ def compute_lcoh_given_params(elec_price_val, fuel_price_val, capex_total_val, a
     # 감가상각 (정액법)
     depreciation_val = capex_total_val / operation_years if operation_years > 0 else 0.0
     for t in range(1, int(operation_years) + 1):
-        opex_reactor_repl = 0.0
+        opex_replacement_t = 0.0
         if reactor_replacement_hours_val > 0 and hours_since_last_replacement_val >= reactor_replacement_hours_val:
-            opex_reactor_repl = opex_annual_val * 0.3
+            opex_replacement_t = opex_annual_val * 0.3
             hours_since_last_replacement_val = 0.0
             years_since_last_replacement_val = 0
 
@@ -202,7 +202,7 @@ def compute_lcoh_given_params(elec_price_val, fuel_price_val, capex_total_val, a
         ng_t_val = annual_ng_val * deg_multiplier
         elec_kwh_t_val = annual_elec_kwh_val * deg_multiplier
 
-        cost_t_val = (elec_kwh_t_val * elec_price_val) + (ng_t_val * fuel_price_val) + opex_annual_val + opex_reactor_repl            
+        cost_t_val = (elec_kwh_t_val * elec_price_val) + (ng_t_val * fuel_price_val) + opex_annual_val + opex_replacement_t            
 
         carbon_rev_t_val = carbon_production * carbon_price_val
 
@@ -236,7 +236,7 @@ for t in range(1, int(operation_years) + 1):
     # 반응기 교체
     opex_replacement_t = 0.0
     if reactor_replacement_hours > 0 and hours_since_last_replacement_val >= reactor_replacement_hours:
-        opex_reactor_t = opex_annual * 0.3  # 스택교체비용 OPEX의 30% 가정
+        opex_replacement_t = opex_annual * 0.3  # 스택교체비용 OPEX의 30% 가정
         hours_since_last_replacement_val = 0.0
         years_since_last_replacement_val = 0
 
