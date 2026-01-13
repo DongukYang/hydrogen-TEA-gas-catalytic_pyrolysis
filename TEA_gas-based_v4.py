@@ -69,10 +69,10 @@ annual_h2_kg = h2_capacity * (annual_operating_hours / 24.0)
 annual_c_kg = carbon_production * (annual_operating_hours / 24.0)
 annual_ng_kg = ng_consumption * (annual_operating_hours / 24.0)
 
-# 탄소 생산 비율 (kgC/kgH2) 계산 : 향후 공정효율에 따라 달라지는 고체탄소 생산품질 영향 -> 현재는 이론수치이며 향후 자세히 반영
+# 탄소 생산 비율 (kgC/kgH2) 계산 
 carbon_ratio = 0.0
 if h2_capacity > 0:
-    carbon_ratio = carbon_production / h2_capacity  # 그냥 3인듯? 750kg / 250kg
+    carbon_ratio = carbon_production / h2_capacity  
 
 # 연간 전력 사용량 및 연료 소비량, 비용
 annual_elec_kwh = annual_h2_kg * elec_consumption
@@ -556,3 +556,4 @@ with col_fin:
     fig_pay.update_xaxes(tickfont=dict(size=16))
     fig_pay.update_yaxes(tickfont=dict(size=16))
     st.plotly_chart(fig_pay, use_container_width=True)
+
