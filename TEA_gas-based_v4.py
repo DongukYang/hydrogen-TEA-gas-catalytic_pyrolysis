@@ -109,11 +109,12 @@ for t in range(1, int(operation_years) + 1):
     deg_multiplier = (1 - reactor_deg_rate) ** years_since_last_replacement if reactor_deg_rate > 0 else 1.0
     h2_t = annual_h2_kg * deg_multiplier
     ng_t = annual_ng_kg * deg_multiplier
+    c_t = annual_c_kg * deg_multiplier
     elec_kwh_t = annual_elec_kwh * deg_multiplier
 
     # 연간 비용 및 수익 계산
     yearly_cost = (elec_kwh_t * elec_price) + (ng_t * fuel_price) + opex_annual + opex_replacement_t  # 전력비+고정/가변OPEX+교체비
-    yearly_rev = (h2_t * h2_price) + (carbon_production * carbon_price) 
+    yearly_rev = (h2_t * h2_price) + (c_t * carbon_price) 
 
     # 현금흐름 및 현재가치 누적
     net_cf = yearly_rev - yearly_cost
@@ -143,31 +144,6 @@ denominator_sum = 0.0
 hours_since_last_replacement = 0.0
 years_since_last_replacement = 0
 
-# 운영 첫 해부터 마지막 해까지 연도별 순비용 계산
-for t in range(1, int(operation_years) + 1):
-    opex_replacement_t = 0.0
-    if reactor_replacement_hours > 0 and hours_since_last_replacement >= reactor_replacement_hours:
-        opex_replacement_t = opex_annual * 0.3
-        hours_since_last_replacement = 0.0
-        years_since_last_replacement = 0
-
-    deg_multiplier = (1 - reactor_deg_rate) ** years_since_last_replacement if reactor_deg_rate > 0 else 1.0
-    h2_t = annual_h2_kg * deg_multiplier
-    ng_t = annual_ng_kg * deg_multiplier
-    elec_kwh_t = annual_elec_kwh * deg_multiplier
-    cost_t = (elec_kwh_t * elec_price) + (ng_t * fuel_price) + opex_annual + opex_replacement_t
-    carbon_rev_t = carbon_production * carbon_price
-
-    numerator_sum_after_tax += ((cost_t - carbon_rev_t) * (1 - tax_rate) + tax_rate * depreciation_amount) / ((1 + r_real) ** t)
-    denominator_sum += h2_t / ((1 + r_real) ** t)
-
-    hours_since_last_replacement += annual_operating_hours
-    years_since_last_replacement += 1
-
-if denominator_sum > 0:
-    lcoh_krw_per_kg = numerator_sum_after_tax / denominator_sum / (1 - tax_rate)
-else:
-    lcoh_krw_per_kg = 0.0
 
 # LCOH 계산용 함수 (민감도 분석에 활용)
 def compute_lcoh_given_params(elec_price_val, fuel_price_val, capex_total_val, annual_operating_hours_val, reactor_replacement_hours_val, opex_annual_val, discount_rate_val, carbon_price_val):
@@ -181,6 +157,7 @@ def compute_lcoh_given_params(elec_price_val, fuel_price_val, capex_total_val, a
         annual_h2_val = 0.0
     annual_elec_kwh_val = annual_h2_val * elec_consumption
     annual_ng_val = ng_consumption * (annual_operating_hours_val / 24.0)
+    annual_c_kg_val = carbon_production * (annual_operating_hours_val / 24.0)
 
     # 현금흐름변수 초기화
     hours_since_last_replacement_val = 0.0
@@ -200,11 +177,12 @@ def compute_lcoh_given_params(elec_price_val, fuel_price_val, capex_total_val, a
 
         h2_t_val = annual_h2_val * deg_multiplier
         ng_t_val = annual_ng_val * deg_multiplier
+        c_t_val = annual_c_kg_val * deg_multiplier
         elec_kwh_t_val = annual_elec_kwh_val * deg_multiplier
 
         cost_t_val = (elec_kwh_t_val * elec_price_val) + (ng_t_val * fuel_price_val) + opex_annual_val + opex_replacement_t            
 
-        carbon_rev_t_val = carbon_production * carbon_price_val
+        carbon_rev_t_val = c_t_val * carbon_price_val 
 
         numerator_val += ((cost_t_val - carbon_rev_t_val) * (1 - tax_rate) + tax_rate * depreciation_val) / ((1 + r_real_val) ** t)
         denominator_val += h2_t_val / ((1 + r_real_val) ** t)
@@ -246,13 +224,14 @@ for t in range(1, int(operation_years) + 1):
     # 수소생산량, 천연가스 연료사용량, 전력사용량
     h2_t = annual_h2_kg * deg_multiplier
     ng_t = annual_ng_kg * deg_multiplier
+    c_t = annual_c_kg * deg_multiplier
     elec_kwh_t = annual_elec_kwh * deg_multiplier
 
     # 연간 비용 수익
     elec_cost_t = elec_kwh_t * elec_price                   # 전력비용
     fuel_cost_t = ng_t * fuel_price                         # Nautral gas 연료요금
     opex_cost_t = opex_annual + opex_replacement_t          # O&M cost (fixed OPEX + 교체비용)
-    carbon_rev_t   = carbon_production * carbon_price       # 탄소 판매수익 (3 kg C per 1 kg H₂)
+    carbon_rev_t   = c_t * carbon_price                     # 탄소 판매수익 
 
     # 할인율
     discount_factor = 1 / ((1 + r_real) ** t) if r_real != -1 else 1.0 
@@ -269,11 +248,41 @@ for t in range(1, int(operation_years) + 1):
     hours_since_last_replacement_val += annual_operating_hours
     years_since_last_replacement_val += 1
 
+
+# 운영 첫 해부터 마지막 해까지 연도별 순비용 계산
+for t in range(1, int(operation_years) + 1):
+    opex_replacement_t = 0.0
+    if reactor_replacement_hours > 0 and hours_since_last_replacement >= reactor_replacement_hours:
+        opex_replacement_t = opex_annual * 0.3
+        hours_since_last_replacement = 0.0
+        years_since_last_replacement = 0
+
+    deg_multiplier = (1 - reactor_deg_rate) ** years_since_last_replacement if reactor_deg_rate > 0 else 1.0
+    h2_t = annual_h2_kg * deg_multiplier
+    ng_t = annual_ng_kg * deg_multiplier
+    c_t = annual_c_kg * deg_multiplier
+    elec_kwh_t = annual_elec_kwh * deg_multiplier
+    cost_t = (elec_kwh_t * elec_price) + (ng_t * fuel_price) + opex_annual + opex_replacement_t
+    carbon_rev_t = c_t * carbon_price
+
+    numerator_sum_after_tax += ((cost_t - carbon_rev_t) * (1 - tax_rate) + tax_rate * depreciation_amount) / ((1 + r_real) ** t)
+    denominator_sum += h2_t / ((1 + r_real) ** t)
+
+    hours_since_last_replacement += annual_operating_hours
+    years_since_last_replacement += 1
+
+if denominator_sum > 0:
+    lcoh_krw_per_kg = numerator_sum_after_tax / denominator_sum / (1 - tax_rate)
+    lcoh_wo_byprod_krw_per_kg = (numerator_sum_after_tax - numerator_byprod) / denominator_sum / (1 - tax_rate) if denominator_sum > 0 else 0.0  # 부산물 수익 제외한 LCOH
+else:
+    lcoh_krw_per_kg = 0.0
+
 capex_construction_per_kg = numerator_construction / denominator_sum / (1 - tax_rate) if denominator_sum > 0 else 0.0
 capex_equipment_per_kg    = numerator_equipment   / denominator_sum / (1 - tax_rate) if denominator_sum > 0 else 0.0
-opex_per_kg               = (numerator_opex + numerator_byprod) / denominator_sum / (1 - tax_rate) if denominator_sum > 0 else 0.0  # 탄소 수익 포함
+opex_per_kg               = numerator_opex        / denominator_sum / (1 - tax_rate) if denominator_sum > 0 else 0.0  
 elec_per_kg               = numerator_elec        / denominator_sum / (1 - tax_rate) if denominator_sum > 0 else 0.0
 fuel_per_kg               = numerator_fuel        / denominator_sum / (1 - tax_rate) if denominator_sum > 0 else 0.0
+# 탄소 수익 
 
 # total LCOH
 total_lcoh_calc = capex_construction_per_kg + capex_equipment_per_kg + opex_per_kg + elec_per_kg + fuel_per_kg
@@ -326,23 +335,24 @@ with col_lcoh:
 
     # LCOH 및 연간 생산/소비량 요약 표
     table_md = f"""
-    <table style='font-size:18px; font-weight:500;' border='1' cellspacing='0' cellpadding='4'>
+    <table style='font-size:18px; font-weight:500;' border='1' cellspacing='0' cellpadding='6'>
         <tr>
-            <td style='padding: 6px 15px;'>LCOH (원/kgH₂)</td>
-            <td style='padding: 6px 15px; font-weight:bold;'>{lcoh_krw_per_kg:,.0f}</td>
+            <td style='padding: 6px 15px;'>LCOH(부산물 수익 제외) (원/kgH₂)</td>
+            <td style='padding: 6px 15px; font-weight:bold;'>{lcoh_wo_byprod_krw_per_kg:,.0f}</td>
             <td style='padding: 6px 15px;'>연간 연료(NG) 소비량 (톤/년)</td>
             <td style='padding: 6px 15px; font-weight:bold;'>{annual_ng_kg/1000:,.0f}</td>
         </tr>
         <tr>
+            <td style='padding: 6px 15px;'>LCOH(부산물 수익 포함) (원/kgH₂)</td>
+            <td style='padding: 6px 15px; font-weight:bold;'>{lcoh_krw_per_kg:,.0f}</td>
             <td style='padding: 6px 15px;'>연간 수소 생산량 (톤/년)</td>
             <td style='padding: 6px 15px; font-weight:bold;'>{annual_h2_ton:,.0f}</td>
-            <td style='padding: 6px 15px;'>연간 전력 사용량 (MWh/년)</td>
-            <td style='padding: 6px 15px; font-weight:bold;'>{annual_elec_mwh:,.0f}</td>
         </tr>
         <tr>
+            <td style='padding: 6px 15px;'>연간 전력 사용량 (MWh/년)</td>
+            <td style='padding: 6px 15px; font-weight:bold;'>{annual_elec_mwh:,.0f}</td>
             <td style='padding: 6px 15px;'>연간 탄소 생산량 (톤/년)</td>
             <td style='padding: 6px 15px; font-weight:bold;'>{annual_c_kg/1000:,.0f}</td>
-            <td></td><td></td>
         </tr>
     </table>
     """
@@ -486,6 +496,7 @@ with col_lcoh:
     fig_major.add_bar(name="OPEX-O&M (개별)", x=["OPEX-O&M"], y=[opex_per_kg], base=[c2], marker_color=colors["OPEX-O&M"], showlegend=False)
     fig_major.add_bar(name="OPEX-전력 (개별)", x=["OPEX-전력"], y=[elec_per_kg], base=[c3], marker_color=colors["OPEX-전력"], showlegend=False)
     fig_major.add_bar(name="OPEX-연료 (개별)", x=["OPEX-연료"], y=[fuel_per_kg], base=[c4], marker_color=colors["OPEX-연료"], showlegend=False)
+
 
     # 막대 그래프 레이아웃 설정
     fig_major.update_layout(barmode="overlay", yaxis_title="원/kgH₂", xaxis_title="",
