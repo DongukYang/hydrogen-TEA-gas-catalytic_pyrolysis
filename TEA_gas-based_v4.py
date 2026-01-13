@@ -23,7 +23,7 @@ construction_years = st.sidebar.number_input("건설기간 (년)", min_value=0.0
 operation_years = st.sidebar.number_input("운영기간 (년)", min_value=1.0, value=20.0, step=1.0)
 reactor_replacement_hours = st.sidebar.number_input("반응기 교체주기 (시간)", min_value=0.0, value=60000.0, step=1000.0)
 annual_operating_hours = st.sidebar.number_input("연간 운전시간 (시간/년)", min_value=0.0, max_value=8760.0, value=8000.0, step=100.0)
-elec_consumption = st.sidebar.number_input("전력 소비량 (kWh/kgH₂)", min_value=0.0, value=12.0, step=0.1)
+elec_consumption = st.sidebar.number_input("에너지 효율 (kWh/kgH₂)", min_value=0.0, value=12.0, step=0.1)
 reactor_degradation = st.sidebar.number_input("반응기 효율 감소율 (%/년)", min_value=0.0, max_value=10.0, value=1.0, step=0.1)
 
 # 1-2. 경제성 입력
@@ -146,7 +146,7 @@ years_since_last_replacement = 0
 
 
 # LCOH 계산용 함수 (민감도 분석에 활용)
-def compute_lcoh_given_params(elec_price_val, fuel_price_val, capex_total_val, annual_operating_hours_val, reactor_replacement_hours_val, opex_annual_val, discount_rate_val, carbon_price_val):
+def compute_lcoh_given_params(elec_price_val, fuel_price_val, capex_total_val, annual_operating_hours_val, elec_consumption_val, opex_annual_val, discount_rate_val, carbon_price_val):
     # 실질 할인율 계산 (물가상승률 inf는 고정)
     r_nominal = discount_rate_val / 100.0
     r_real_val = (1 + r_nominal) / (1 + inf) - 1 if (1 + inf) > 0 else r_nominal
@@ -155,7 +155,7 @@ def compute_lcoh_given_params(elec_price_val, fuel_price_val, capex_total_val, a
         annual_h2_val = h2_capacity * (annual_operating_hours_val / 24.0)
     else:
         annual_h2_val = 0.0
-    annual_elec_kwh_val = annual_h2_val * elec_consumption
+    annual_elec_kwh_val = annual_h2_val * elec_consumption_val
     annual_ng_val = ng_consumption * (annual_operating_hours_val / 24.0)
     annual_c_kg_val = carbon_production * (annual_operating_hours_val / 24.0)
 
@@ -168,7 +168,7 @@ def compute_lcoh_given_params(elec_price_val, fuel_price_val, capex_total_val, a
     depreciation_val = capex_total_val / operation_years if operation_years > 0 else 0.0
     for t in range(1, int(operation_years) + 1):
         opex_replacement_t = 0.0
-        if reactor_replacement_hours_val > 0 and hours_since_last_replacement_val >= reactor_replacement_hours_val:
+        if reactor_replacement_hours > 0 and hours_since_last_replacement_val >= reactor_replacement_hours:
             opex_replacement_t = opex_annual_val * 0.3
             hours_since_last_replacement_val = 0.0
             years_since_last_replacement_val = 0
@@ -374,13 +374,13 @@ with col_lcoh:
 
     with col_sensi:
         st.markdown("### 민감도 분석 (입력값 ±40%)")
-        sensi_vars = ["전기요금", "연료요금", "CAPEX", "연간 운전시간", "반응기 교체주기", "OPEX", "할인율", "탄소 판매가격"]
+        sensi_vars = ["전기요금", "연료요금", "CAPEX", "연간 운전시간", "에너지 효율", "OPEX", "할인율", "탄소 판매가격"]
         base_params = {
             "elec_price": elec_price,
             "fuel_price": fuel_price,
             "capex_total": capex_total,
             "annual_operating_hours": annual_operating_hours,
-            "reactor_replacement_hours": reactor_replacement_hours,
+            "elec_consumption": elec_consumption,
             "opex_annual": opex_annual,
             "discount_rate": discount_rate,
             "carbon_price": carbon_price,
@@ -398,8 +398,8 @@ with col_lcoh:
                 p["capex_total"] *= 0.6
             elif name == "연간 운전시간":
                 p["annual_operating_hours"] *= 0.6
-            elif name == "반응기 교체주기":
-                p["reactor_replacement_hours"] *= 0.6
+            elif name == "에너지 효율":
+                p["elec_consumption"] *= 0.6
             elif name == "OPEX":
                 p["opex_annual"] *= 0.6
             elif name == "할인율":
@@ -412,7 +412,7 @@ with col_lcoh:
                 p["fuel_price"],
                 p["capex_total"],
                 p["annual_operating_hours"],
-                p["reactor_replacement_hours"],
+                p["elec_consumption"],
                 p["opex_annual"],
                 p["discount_rate"],
                 p["carbon_price"]
@@ -429,8 +429,8 @@ with col_lcoh:
                 p["capex_total"] *= 1.4
             elif name == "연간 운전시간":
                 p["annual_operating_hours"] *= 1.4
-            elif name == "반응기 교체주기":
-                p["reactor_replacement_hours"] *= 1.4
+            elif name == "에너지 효율":
+                p["elec_consumption"] *= 1.4
             elif name == "OPEX":
                 p["opex_annual"] *= 1.4
             elif name == "할인율":
@@ -443,7 +443,7 @@ with col_lcoh:
                 p["fuel_price"],
                 p["capex_total"],                
                 p["annual_operating_hours"],
-                p["reactor_replacement_hours"],
+                p["elec_consumption"],
                 p["opex_annual"],
                 p["discount_rate"],
                 p["carbon_price"],
