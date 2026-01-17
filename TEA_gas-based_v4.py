@@ -19,7 +19,7 @@ h2_capacity = st.sidebar.number_input("수소 생산량 (kg/일)", min_value=0.0
 carbon_production = st.sidebar.number_input("탄소 생산량 (kg/일)", min_value=0.0, value=750.0, step=10.0)
 ng_consumption = st.sidebar.number_input("연료(NG) 소비량 (kg/일)", min_value=0.0, value=1000.0, step=10.0)
 
-construction_years = st.sidebar.number_input("건설기간 (년)", min_value=0.0, value=2.0, step=0.5)
+# construction_years = st.sidebar.number_input("건설기간 (년)", min_value=0.0, value=2.0, step=0.5)
 operation_years = st.sidebar.number_input("운영기간 (년)", min_value=1.0, value=20.0, step=1.0)
 reactor_replacement_hours = st.sidebar.number_input("반응기 교체주기 (시간)", min_value=0.0, value=60000.0, step=1000.0)
 annual_operating_hours = st.sidebar.number_input("연간 운전시간 (시간/년)", min_value=0.0, max_value=8760.0, value=8000.0, step=100.0)
@@ -58,7 +58,7 @@ h2_price = st.sidebar.number_input("수소 판매가격 (원/kgH₂)", min_value
 carbon_price = st.sidebar.number_input("탄소 판매가격 (원/kg)", min_value=0.0, value=2500.0, step=50.0)
 discount_rate = st.sidebar.number_input("할인율 (%/년)", min_value=0.0, max_value=20.0, value=7.0, step=0.1)
 inflation_rate = st.sidebar.number_input("물가상승률 (%/년)", min_value=0.0, max_value=10.0, value=2.0, step=0.1)
-cost_of_capital = st.sidebar.number_input("총자본비용 (%/년)", min_value=0.0, max_value=20.0, value=8.0, step=0.1)
+# cost_of_capital = st.sidebar.number_input("총자본비용 (%/년)", min_value=0.0, max_value=20.0, value=8.0, step=0.1)
 corp_tax_rate = st.sidebar.number_input("법인세율 (%):", min_value=0.0, max_value=50.0, value=20.0, step=0.1)
 tax_rate = corp_tax_rate / 100.0
 
@@ -556,4 +556,5 @@ with col_fin:
     fig_pay.update_xaxes(tickfont=dict(size=16))
     fig_pay.update_yaxes(tickfont=dict(size=16))
     st.plotly_chart(fig_pay, use_container_width=True)
+
 
